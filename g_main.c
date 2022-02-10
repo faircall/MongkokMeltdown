@@ -9,6 +9,12 @@
 // TODO: think about how to do walk cycles for horizontal
 // in an appropriate amount of frames lol
 
+// TODO: a run animation cycle
+
+// TODO: an enemy on screen
+
+// TODO: Options- manual sprite ordering, OR draw stuff orthographically
+
 #define RAYMATH_IMPLEMENTATION
 
 #define min(a,b) (a < b? a : b)
@@ -49,9 +55,13 @@ int main(void)
     Vector2 playerDestination = {.x = playerPosition.x, .y = playerPosition.y};
     Vector2 playerVelocity = {.x = 0.0f, .y = 0.0f};
     Vector2 playerHeading= {.x = 0.0f, .y = 0.0f};
+
+    Vector2 enemyPosition = {.x = 400.0f, .y = 500.0f};
     
 
     // graphics stuff
+    Texture2D boloTexture = LoadTexture("art/bolo.png");
+    
     Texture2D rudyTexture = LoadTexture("art/rudy.png");
     int rudyTextureWidth = 64;
     int rudyTextureHeight = 64;
@@ -257,12 +267,14 @@ int main(void)
         //DrawCircleLines(playerPosition.x, playerPosition.y, 20, RAYWHITE);
 	Rectangle rudyFrameRec = {.x = (rudyAnimationFrame + rudyCycleFrame) * rudyTextureWidth, .y = 0, .width = rudyTextureWidth, .height = rudyTextureHeight};
 	DrawTextureRec(rudyTexture, rudyFrameRec, playerPosition, RAYWHITE);
+
+	DrawTextureV(boloTexture, enemyPosition, RAYWHITE);
         DrawCircleLines(mousePos.x, mousePos.y, 5, LIGHTGRAY);
      
             
+	
             
-            
-           
+	
                 
                
              
