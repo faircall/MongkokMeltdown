@@ -2,6 +2,7 @@
 *Press f6 to run
 ********************************************************************************************/
 #include <math.h>
+#include <stdlib.h>
 #include "raylib.h"
 #include "raymath.h"
 
@@ -15,6 +16,15 @@
 
 // TODO: Options- manual sprite ordering, OR draw stuff orthographically
 
+// TODO: remake game in Unity and Godot for comparison
+
+//Gonna want some data structure holding everything to draw, which in the manual case needs to be sorted
+//and we'll also want some way of identifying which draw function to use
+
+// Try both
+
+//start manually
+
 #define RAYMATH_IMPLEMENTATION
 
 #define min(a,b) (a < b? a : b)
@@ -26,6 +36,19 @@ typedef enum {
     RUDYLEFT,
     RUDYRIGHT
 } RudyDirection;
+
+typedef enum {
+    PLAYER,
+    ENEMY
+} EntityType;
+
+typedef struct {
+    Vector2 position;
+    Vector2 destination;
+    Vector2 velocity;
+    Vector2 heading;
+    EntityType type;
+} Entity;
 
 int main(void)
 {
@@ -48,7 +71,8 @@ int main(void)
     
    
     
-   
+    int max_entities = 256;
+    struct Entity *entities = malloc(max_entities * sizeof(Entity)); // flat array of enemies?
     
     
     Vector2 playerPosition = {.x = screenWidth/2.0f, .y = screenHeight/2.0f};
@@ -57,11 +81,15 @@ int main(void)
     Vector2 playerHeading= {.x = 0.0f, .y = 0.0f};
 
     Vector2 enemyPosition = {.x = 400.0f, .y = 500.0f};
+    Vector2 enemyDestination = {.x = 200.0f, .y = 100.0f};
+    Vector2 enemyHeading;
+    float enemyMoveTimer = 0.0f;
+    float enemyMoveTimerMax = 2.0f;
     
 
     // graphics stuff
     Texture2D boloTexture = LoadTexture("art/bolo.png");
-    
+    Texture2D blankBGTexture = LoadTexture("art/blankbg.png");
     Texture2D rudyTexture = LoadTexture("art/rudy.png");
     int rudyTextureWidth = 64;
     int rudyTextureHeight = 64;
@@ -76,7 +104,17 @@ int main(void)
     
     Shader shadowShader = LoadShader("base.vs", "shadow.fs");
     int shadowLoc = GetShaderLocation(shadowShader, "tex");
+    SetShaderValueTexture(shadowShader, shadowLoc, rudyTexture);
 
+    Shader horizonShader = LoadShader("base.vs", "horizon.fs");
+    int horizonTimeOfDayLoc = GetShaderLocation(horizonShader, "timeOfDay");
+    int horizonSunPosLoc = GetShaderLocation(horizonShader, "sunPos");
+
+    float timeOfDay = 12.0f;
+    Vector2 sunPos = {.x = screenWidth/2.0f, .y = screenHeight/2.0f};
+    
+    SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+    SetShaderValueV(horizonShader, horizonSunPosLoc, &sunPos, SHADER_UNIFORM_VEC2, 1);
     
     float targetMsPerFrame = 1.0f/60.0f;
     
@@ -88,6 +126,8 @@ int main(void)
     int rudyCycleMax = 2;
     float rudyAnimationTimer = 0.0f;
     float rudyAnimationFrameTime = 25.0f;
+
+
     
     
     
@@ -99,6 +139,12 @@ int main(void)
         // TODO: Update your variables here
         //----------------------------------------------------------------------------------
         float dt = GetFrameTime();
+	timeOfDay += dt;
+	SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+	if (timeOfDay > 24.0f) {
+	    timeOfDay = 0.0f;
+	    SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+	}
 
 	dt = min(dt, targetMsPerFrame);
         
@@ -206,7 +252,26 @@ int main(void)
 	    rudyCycleFrame = 0;
 	}
 
-	
+	// ENEMY MOVEMENT STUFF (to be wrapped later)
+	if (Vector2Distance(enemyDestination, enemyPosition) > 5.0f) {
+	    //get heading
+	    enemyHeading = Vector2Subtract(enemyDestination, enemyPosition);
+	    enemyHeading = Vector2Normalize(enemyHeading);
+	    //then move
+
+	    //temp basic movement
+	    enemyPosition = Vector2Add(enemyPosition, Vector2Scale(enemyHeading, dt * 100.0f));
+	    
+	} else {
+	    //wait
+	    enemyMoveTimer += dt;
+	    //find a new destination
+	    if (enemyMoveTimer >= enemyMoveTimerMax) {
+		enemyMoveTimer = 0.0f;
+		enemyDestination.x = 5 + rand() % (screenWidth - 30);
+		enemyDestination.y = 5 + rand() % (screenHeight - 30);
+	    }
+	}
     
         
         
@@ -266,9 +331,20 @@ int main(void)
         
         //DrawCircleLines(playerPosition.x, playerPosition.y, 20, RAYWHITE);
 	Rectangle rudyFrameRec = {.x = (rudyAnimationFrame + rudyCycleFrame) * rudyTextureWidth, .y = 0, .width = rudyTextureWidth, .height = rudyTextureHeight};
+
+
+	BeginShaderMode(horizonShader);
+	DrawRectangle(0, 0, screenWidth, screenHeight, RAYWHITE);
+	EndShaderMode();
+	
+	BeginShaderMode(shadowShader);
+	Vector2 playerShadowPosition = {.x = playerPosition.x, .y = playerPosition.y - 50.0f};
+	DrawTextureRec(rudyTexture, rudyFrameRec, playerShadowPosition, RAYWHITE);
+	EndShaderMode();
+	
 	DrawTextureRec(rudyTexture, rudyFrameRec, playerPosition, RAYWHITE);
 
-	DrawTextureV(boloTexture, enemyPosition, RAYWHITE);
+	//DrawTextureV(boloTexture, enemyPosition, RAYWHITE);
         DrawCircleLines(mousePos.x, mousePos.y, 5, LIGHTGRAY);
      
             
@@ -283,6 +359,9 @@ int main(void)
         EndDrawing();
         //----------------------------------------------------------------------------------
     }
+
+    //free everything
+    free(entities);
 
     // De-Initialization
     //--------------------------------------------------------------------------------------
