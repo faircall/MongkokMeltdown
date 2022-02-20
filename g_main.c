@@ -109,12 +109,23 @@ int main(void)
     Shader horizonShader = LoadShader("base.vs", "horizon.fs");
     int horizonTimeOfDayLoc = GetShaderLocation(horizonShader, "timeOfDay");
     int horizonSunPosLoc = GetShaderLocation(horizonShader, "sunPos");
+    int horizonPosLoc = GetShaderLocation(horizonShader, "horizonPos");
+    
+    int horizonScreenWidthLoc = GetShaderLocation(horizonShader, "screenWidth");
+    int horizonScreenHeightLoc = GetShaderLocation(horizonShader, "screenHeight");
 
     float timeOfDay = 12.0f;
     Vector2 sunPos = {.x = screenWidth/2.0f, .y = screenHeight/2.0f};
+    Vector2 horizonPos = {.x = screenWidth/2.0f, .y = screenHeight/2.0f};
+
+    float horizonScreenWidth = 1280.0f;
+    float horizonScreenHeight = 720.0f;
     
     SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(horizonShader, horizonScreenWidthLoc, &horizonScreenWidth, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(horizonShader, horizonScreenHeightLoc, &horizonScreenHeight, SHADER_UNIFORM_FLOAT);
     SetShaderValueV(horizonShader, horizonSunPosLoc, &sunPos, SHADER_UNIFORM_VEC2, 1);
+    SetShaderValueV(horizonShader, horizonPosLoc, &horizonPos, SHADER_UNIFORM_VEC2, 1);
     
     float targetMsPerFrame = 1.0f/60.0f;
     
@@ -334,7 +345,8 @@ int main(void)
 
 
 	BeginShaderMode(horizonShader);
-	DrawRectangle(0, 0, screenWidth, screenHeight, RAYWHITE);
+	//DrawRectangle(0, 0, screenWidth, screenHeight, RAYWHITE);
+	DrawTexture(blankBGTexture, 0, 0, RAYWHITE);
 	EndShaderMode();
 	
 	BeginShaderMode(shadowShader);
