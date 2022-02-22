@@ -91,6 +91,8 @@ int main(void)
     Texture2D boloTexture = LoadTexture("art/bolo.png");
     Texture2D blankBGTexture = LoadTexture("art/blankbg.png");
     Texture2D rudyTexture = LoadTexture("art/rudy.png");
+    Texture2D groundTexture = LoadTexture("art/ground.png");
+    Texture2D pillarTexture = LoadTexture("art/pillars.png");
     int rudyTextureWidth = 64;
     int rudyTextureHeight = 64;
     // constants pulled from the spritesheet positions,
@@ -108,13 +110,15 @@ int main(void)
 
     Shader horizonShader = LoadShader("base.vs", "horizon.fs");
     int horizonTimeOfDayLoc = GetShaderLocation(horizonShader, "timeOfDay");
+    int horizonTimeOfDayMaxLoc = GetShaderLocation(horizonShader, "timeOfDayMax");
     int horizonSunPosLoc = GetShaderLocation(horizonShader, "sunPos");
     int horizonPosLoc = GetShaderLocation(horizonShader, "horizonPos");
     
     int horizonScreenWidthLoc = GetShaderLocation(horizonShader, "screenWidth");
     int horizonScreenHeightLoc = GetShaderLocation(horizonShader, "screenHeight");
 
-    float timeOfDay = 12.0f;
+    float timeOfDay = 0.0f;
+    float timeOfDayMax = 100.0f;
     Vector2 sunPos = {.x = screenWidth/2.0f, .y = screenHeight/2.0f};
     Vector2 horizonPos = {.x = screenWidth/2.0f, .y = screenHeight/2.0f};
 
@@ -122,6 +126,7 @@ int main(void)
     float horizonScreenHeight = 720.0f;
     
     SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(horizonShader, horizonTimeOfDayMaxLoc, &timeOfDayMax, SHADER_UNIFORM_FLOAT);
     SetShaderValue(horizonShader, horizonScreenWidthLoc, &horizonScreenWidth, SHADER_UNIFORM_FLOAT);
     SetShaderValue(horizonShader, horizonScreenHeightLoc, &horizonScreenHeight, SHADER_UNIFORM_FLOAT);
     SetShaderValueV(horizonShader, horizonSunPosLoc, &sunPos, SHADER_UNIFORM_VEC2, 1);
@@ -150,9 +155,11 @@ int main(void)
         // TODO: Update your variables here
         //----------------------------------------------------------------------------------
         float dt = GetFrameTime();
+	
+
 	timeOfDay += dt;
 	SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
-	if (timeOfDay > 24.0f) {
+	if (timeOfDay > timeOfDayMax) {
 	    timeOfDay = 0.0f;
 	    SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
 	}
@@ -342,16 +349,23 @@ int main(void)
         
         //DrawCircleLines(playerPosition.x, playerPosition.y, 20, RAYWHITE);
 	Rectangle rudyFrameRec = {.x = (rudyAnimationFrame + rudyCycleFrame) * rudyTextureWidth, .y = 0, .width = rudyTextureWidth, .height = rudyTextureHeight};
+	Rectangle rudyFrameShadowRec = {.x = (rudyAnimationFrame + rudyCycleFrame) * rudyTextureWidth, .y = 0, .width = rudyTextureWidth, .height = rudyTextureHeight};
+	rudyFrameShadowRec.width *= -1.0f;
 
 
 	BeginShaderMode(horizonShader);
 	//DrawRectangle(0, 0, screenWidth, screenHeight, RAYWHITE);
 	DrawTexture(blankBGTexture, 0, 0, RAYWHITE);
 	EndShaderMode();
-	
+	DrawTextureEx(pillarTexture, (Vector2){.x = 0.0f, .y = 0.0f}, 0.0f, 10.0f, RAYWHITE);
+	DrawTextureEx(groundTexture, (Vector2){.x = 0.0f, .y = 0.0f}, 0.0f, 10.0f, RAYWHITE);
 	BeginShaderMode(shadowShader);
 	Vector2 playerShadowPosition = {.x = playerPosition.x, .y = playerPosition.y - 50.0f};
-	DrawTextureRec(rudyTexture, rudyFrameRec, playerShadowPosition, RAYWHITE);
+	Rectangle playerShadowRect = {.x = playerPosition.x, .y = playerPosition.y + 60.0f, .width = rudyTextureWidth, .height = rudyTextureHeight};
+	//DrawTextureRec(rudyTexture, rudyFrameRec, playerShadowPosition, RAYWHITE);
+	//DrawTextureEx(rudyTexture, rudyFrameRec, playerShadowPosition, RAYWHITE);
+	//DrawTextureTiled(rudyTexture, rudyFrameRec, playerShadowRect, (Vector2){.x = rudyTextureWidth, .y = rudyTextureHeight}, 2.0f, 1.0f, RAYWHITE);
+	DrawTexturePro(rudyTexture, rudyFrameShadowRec, playerShadowRect, (Vector2){.x = rudyTextureWidth, .y = rudyTextureHeight}, 180.0f, RAYWHITE);
 	EndShaderMode();
 	
 	DrawTextureRec(rudyTexture, rudyFrameRec, playerPosition, RAYWHITE);
