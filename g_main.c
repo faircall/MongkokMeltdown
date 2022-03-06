@@ -106,7 +106,15 @@ int main(void)
     
     Shader shadowShader = LoadShader("base.vs", "shadow.fs");
     int shadowLoc = GetShaderLocation(shadowShader, "tex");
-    SetShaderValueTexture(shadowShader, shadowLoc, rudyTexture);
+    int shadowTimeOfDayLoc = GetShaderLocation(shadowShader, "timeOfDay");
+    int shadowTimeOfDayMaxLoc = GetShaderLocation(shadowShader, "timeOfDayMax");
+    //SetShaderValueTexture(shadowShader, shadowLoc, rudyTexture);
+
+    Shader lightingShader = LoadShader("base.vs", "lighting.fs");
+    int lightingLoc = GetShaderLocation(lightingShader, "tex");
+    int lightingTimeOfDayLoc = GetShaderLocation(lightingShader, "timeOfDay");
+    int lightingTimeOfDayMaxLoc = GetShaderLocation(lightingShader, "timeOfDayMax");
+    //SetShaderValueTexture(lightingShader, lightingLoc, pillarTexture);
 
     Shader horizonShader = LoadShader("base.vs", "horizon.fs");
     int horizonTimeOfDayLoc = GetShaderLocation(horizonShader, "timeOfDay");
@@ -127,6 +135,10 @@ int main(void)
     
     SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
     SetShaderValue(horizonShader, horizonTimeOfDayMaxLoc, &timeOfDayMax, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shadowShader, shadowTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(shadowShader, shadowTimeOfDayMaxLoc, &timeOfDayMax, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(lightingShader, lightingTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(lightingShader, lightingTimeOfDayMaxLoc, &timeOfDayMax, SHADER_UNIFORM_FLOAT);
     SetShaderValue(horizonShader, horizonScreenWidthLoc, &horizonScreenWidth, SHADER_UNIFORM_FLOAT);
     SetShaderValue(horizonShader, horizonScreenHeightLoc, &horizonScreenHeight, SHADER_UNIFORM_FLOAT);
     SetShaderValueV(horizonShader, horizonSunPosLoc, &sunPos, SHADER_UNIFORM_VEC2, 1);
@@ -159,9 +171,13 @@ int main(void)
 
 	timeOfDay += dt;
 	SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+	SetShaderValue(shadowShader, shadowTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+	SetShaderValue(lightingShader, lightingTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
 	if (timeOfDay > timeOfDayMax) {
 	    timeOfDay = 0.0f;
 	    SetShaderValue(horizonShader, horizonTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+	    SetShaderValue(shadowShader, shadowTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
+	    SetShaderValue(lightingShader, lightingTimeOfDayLoc, &timeOfDay, SHADER_UNIFORM_FLOAT);
 	}
 
 	dt = min(dt, targetMsPerFrame);
@@ -357,9 +373,23 @@ int main(void)
 	//DrawRectangle(0, 0, screenWidth, screenHeight, RAYWHITE);
 	DrawTexture(blankBGTexture, 0, 0, RAYWHITE);
 	EndShaderMode();
+
+	
+	BeginShaderMode(lightingShader);
+	SetShaderValueTexture(lightingShader, lightingLoc, pillarTexture); //bugs out later shader code if we do this
+	//maybe its cache doesn't clear out fast enough or something...?
+
+	//I think we should use a different draw texture call
 	DrawTextureEx(pillarTexture, (Vector2){.x = 0.0f, .y = 0.0f}, 0.0f, 10.0f, RAYWHITE);
-	DrawTextureEx(groundTexture, (Vector2){.x = 0.0f, .y = 0.0f}, 0.0f, 10.0f, RAYWHITE);
+	EndShaderMode();
+	//EndShaderMode();
+	//BeginShaderMode(lightingShader);
+	//SetShaderValueTexture(lightingShader, lightingLoc, groundTexture);
+	//DrawTextureEx(groundTexture, (Vector2){.x = 0.0f, .y = 0.0f}, 0.0f, 10.0f, RAYWHITE);
+	//EndShaderMode();
+
 	BeginShaderMode(shadowShader);
+	SetShaderValueTexture(shadowShader, shadowLoc, rudyTexture);
 	Vector2 playerShadowPosition = {.x = playerPosition.x, .y = playerPosition.y - 50.0f};
 	Rectangle playerShadowRect = {.x = playerPosition.x, .y = playerPosition.y + 60.0f, .width = rudyTextureWidth, .height = rudyTextureHeight};
 	//DrawTextureRec(rudyTexture, rudyFrameRec, playerShadowPosition, RAYWHITE);
@@ -367,7 +397,8 @@ int main(void)
 	//DrawTextureTiled(rudyTexture, rudyFrameRec, playerShadowRect, (Vector2){.x = rudyTextureWidth, .y = rudyTextureHeight}, 2.0f, 1.0f, RAYWHITE);
 	DrawTexturePro(rudyTexture, rudyFrameShadowRec, playerShadowRect, (Vector2){.x = rudyTextureWidth, .y = rudyTextureHeight}, 180.0f, RAYWHITE);
 	EndShaderMode();
-	
+	BeginShaderMode(lightingShader);
+	SetShaderValueTexture(lightingShader, lightingLoc, rudyTexture); //bugs out later shader code if we do this
 	DrawTextureRec(rudyTexture, rudyFrameRec, playerPosition, RAYWHITE);
 
 	//DrawTextureV(boloTexture, enemyPosition, RAYWHITE);
@@ -379,7 +410,7 @@ int main(void)
 	
                 
                
-             
+	
       
 
         EndDrawing();
